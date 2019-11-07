@@ -1,0 +1,326 @@
+%%matlab support all version.
+%matlab 2011-2018.
+%auther Rahulpunk
+%%email:rahulpunk555@gmail.com
+%%this project base on multiple particle to extracrted bigger size with real
+%%time using microscope and many other application .thank you
+%%
+function ExtractBiggestBlob()
+obj=videoinput('winvideo',1);
+    
+obj.ReturnedColorspace = 'rgb';
+B=getsnapshot(obj);
+framesAcquired = 0;
+while (framesAcquired <= 0); 
+    
+  rgbImage = getsnapshot(obj); 
+      framesAcquired = framesAcquired + 1;    
+      
+      
+      diff_im = imsubtract(rgbImage(:,:,1),rgb2gray(rgbImage));
+   
+      
+      diff_im = medfilt2(diff_im, [3 3]);             
+      diff_im = im2bw(diff_im,0.1);  
+    
+     
+      %stats = regionprops(diff_im, 'BoundingBox', 'Centroid'); 
+      
+  
+      % Remove all those pixels less than 300px
+      diff_im = bwareaopen(diff_im,1);
+  
+    
+    % Label all the connected components in the image.
+     bw = bwlabel(diff_im, 4);
+     
+    % Here we do the image blob analysis.
+    % We get a set of properties for each labeled region.
+    stats = regionprops(bw, 'BoundingBox', 'Centroid');
+    
+    % Display the image
+    imshow(rgbImage);
+     hold on
+    % Get all the blob properties.  Can only pass in originalImage in version R2008a and later.
+    %This is a loop to bound the red objects in a rectangular box.
+    for object = 1:length(stats)
+        bb = stats(object).BoundingBox;
+        bc = stats(object).Centroid;
+      
+        plot(bc(1),bc(2), '-m+')
+     a=text(bc(1)+55,bc(2), strcat('X: ', num2str(round(bc(1))), '    Y: ', num2str(round(bc(2))), '    Color: red'));
+        %%////////////// a=text(bc(1)+15,bc(2), strcat('X: ', num2str(round(bc(1))), '    Y: ', num2str(round(bc(2))), '    Color: red'));
+       
+        hold on 
+    
+    end  
+ 
+    hold off
+    
+end
+ 
+% Read in image into an array.
+%%%%%%%%
+rgb=imshow(rgbImage)
+[rows, columns, numberOfColorBands] = size(rgbImage); 
+% Display it.
+subplot(3, 3, 1);
+imshow(rgbImage, []);
+% Enlarge figure to full screen.
+set(gcf, 'units','normalized','outerposition',[0 0 1  1 ]);
+% Give a name to the title bar.
+set(gcf,'name','Shape Recognition Demo','numbertitle','off') 
+% If it's monochrome (indexed), convert it to color. 
+if numberOfColorBands > 0
+	grayImage = rgbImage(:,:,3);
+else
+	% It's already a gray scale image.
+	grayImage = rgbImage;
+end
+title('input image' );
+% Display it.
+subplot(3, 3, 2);
+imshow(grayImage, []);
+% Binarize the image.
+binaryImage = grayImage > 100;
+% Display it.
+subplot(3, 3, 2);
+imshow(binaryImage, []);
+% Remove small objects.
+binaryImage = bwareaopen(binaryImage, 100);
+% Display it.
+subplot(3, 3, 2);
+imshow(binaryImage, []);
+title('Binary Image ' );
+[labeledImage numberOfObjects] = bwlabel(binaryImage);
+blobMeasurements = regionprops(labeledImage,...
+	'Perimeter', 'Area', 'FilledArea', 'Solidity', 'Centroid'); 
+% Get the outermost boundaries of the objects, just for fun.
+filledImage = imfill(binaryImage, 'holes');
+boundaries = bwboundaries(filledImage);
+% Collect some of the measurements into individual arrays.
+perimeters = [blobMeasurements.Perimeter];
+areas = [blobMeasurements.Area];
+filledAreas = [blobMeasurements.FilledArea];
+solidities = [blobMeasurements.Solidity];
+% Calculate circularities:
+circularities = perimeters .^1 ./ (1 * pi * filledAreas);
+% Print to command window.
+fprintf('#, Perimeter, Area, Filled Area, Solidity, Circularity\n');
+for blobNumber = 1 : numberOfObjects
+	fprintf('%d, %9.3f, %11.3f, %11.3f, %8.3f, %11.3f\n', ...
+		blobNumber, perimeters(blobNumber), areas(blobNumber), ...
+		filledAreas(blobNumber), solidities(blobNumber), circularities(blobNumber));
+end
+B=bwboundaries(binaryImage);
+imshow(binaryImage)
+text(10,10, strcat('\color{green}objectsfound:',num2str(length(B)))),
+hold on
+for k=1:length(B);
+    boundary=B(k);
+end
+    
+ disp(k)   
+% Say what they are.
+% IMPORTANT NOTE: depending on the aspect ratio of the rectangel or triangle
+for blobNumber = 1 : numberOfObjects-1
+	% Outline the object so the user can see it.
+	thisBoundary = boundaries{blobNumber};
+	subplot(3, 3, 6); % Switch to upper right image.
+	hold on;
+	% Display prior boundaries in blue
+	for k = 1 : blobNumber
+		thisBoundary = boundaries{k};
+		plot(thisBoundary(:,2), thisBoundary(:,1), 'r', 'LineWidth', 3);
+	end
+	% Display this bounary in red.
+	thisBoundary = boundaries{blobNumber};
+	plot(thisBoundary(:,2), thisBoundary(:,1), 'c', 'LineWidth', 3);
+	subplot(3, 3, 6); % Switch to lower right image.
+	
+	% Determine the shape.
+	if circularities(blobNumber) < 0
+		
+		shape = 'rectangle';
+    else
+		shape = 'something else';
+	end
+	% Display in overlay above the object
+	
+    
+ 
+ 
+    % Call bwlabel or bwconncomp on the inverted image.
+cc = bwconncomp(~binaryImage);
+% Measure the area of all the blobs.
+measurements = regionprops(cc, 'Area');
+allAreas = [measurements.Area]
+% Find the biggest area and blob number
+[maxArea, indexOfBiggestBlob] = max(allAreas);
+    
+   
+    
+		break;
+end
+% Get the dimensions of the image.
+% numberOfColorBands should be = 1.
+[rows, columns, numberOfColorBands] = size(grayImage);
+% Display the original gray scale image.
+subplot(3, 3, 3);
+imshow(grayImage, []);
+title('input Image' );
+% Enlarge figure to full screen.
+set(gcf, 'units','normalized','outerposition',[0 0 1 1]);
+% Give a name to the title bar.
+set(gcf,'name','worldtechchampion.','numbertitle','off')
+% Let's compute and display the histogram.
+[pixelCount, grayLevels] = imhist(grayImage);
+subplot(3, 3, 3);
+bar(pixelCount);
+grid on;
+title('histogram of input image' );
+xlim([0 grayLevels(end)]); % Scale x axis manually.
+% Threshold the image to binarize it.
+binaryImage = grayImage > 100;
+% Fill holes
+binaryImage = imfill(binaryImage, 'holes');
+% Display the image.
+subplot(3, 3, 4);
+imshow(binaryImage, []);
+title('Binary Image with area' );
+% Get all the blob properties.  Can only pass in originalImage in version R2008a and later.
+[labeledImage, numberOfBlobs] = bwlabel(binaryImage);
+blobMeasurements = regionprops(labeledImage, 'area', 'Centroid');
+% Get all the areas
+allAreas = [blobMeasurements.Area] % No semicolon so it will print to the command window.
+menuOptions{1} = '0'; % Add option to extract no blobs.
+% Display areas on image
+ for k = 1 : numberOfBlobs           % Loop through all blobs.
+	thisCentroid = [blobMeasurements(k).Centroid(1), blobMeasurements(k).Centroid(2)];
+	message = sprintf('Area = %d', allAreas(k));
+	text(thisCentroid(1), thisCentroid(2), message, 'Color', 'r');
+	menuOptions{k+1} = sprintf('%d', k);
+end
+  
+biggestBlob = ExtractNLargestBlobs(binaryImage, 1);
+subplot(2, 2, 4);
+imshow(biggestBlob, []);
+title('biggestBlob1' );
+numberofpixels=numel(binaryImage);
+numberoftrurepixels=sum(binaryImage(:));
+% Make the number positive again.  We don't need it negative for smallest extraction anymore.
+function binaryImage = ExtractNLargestBlobs(binaryImage, numberToExtract)
+try
+	% Get all the blob properties.  Can only pass in originalImage in version R2008a and later.
+	[labeledImage, numberOfBlobs] = bwlabel(binaryImage);
+	blobMeasurements = regionprops(labeledImage, 'area');
+	% Get all the areas
+	allAreas = [blobMeasurements.Area];
+	if numberToExtract > length(allAreas);
+		% Limit the number they can get to the number that are there/available.
+		numberToExtract = length(allAreas);
+	end
+	if numberToExtract > 0
+		% For positive numbers, sort in order of largest to smallest.
+		% Sort them.
+		[sortedAreas, sortIndexes] = sort(allAreas, 'descend');
+	elseif numberToExtract < 0
+		% For negative numbers, sort in order of smallest to largest.
+		% Sort them.
+		[sortedAreas, sortIndexes] = sort(allAreas, 'ascend');
+		% Need to negate numberToExtract so we can use it in sortIndexes later.
+		numberToExtract = -numberToExtract;
+	else
+		% numberToExtract = 0.  Shouldn't happen.  Return no blobs.
+		binaryImage = false(size(binaryImage));
+		return;
+	end
+	% Extract the "numberToExtract" largest blob(s) using ismember().
+	biggestBlob = ismember(labeledImage, sortIndexes(1:numberToExtract));
+	% Convert from integer labeled image into binary (logical) image.
+	binaryImage = biggestBlob > 0;
+end
+subplot(3, 3, 9);
+imshow(biggestBlob,[]);
+title('result' );
+I_double=im2double(biggestBlob);
+b=find(I_double==0);
+w=find(I_double==1);
+numelBlackPixels=numel(b);
+numelWhitePixels=numel(w);
+area1=bwarea(biggestBlob);
+disp(area1)
+edtImage = bwdist(biggestBlob);
+maxDiam =  max(edtImage(:));  % Max() will give the radius.
+disp(maxDiam);
+dispaa=(1024/area1);
+s=dispaa;
+disp(s)
+s=nonzeros(dispaa);
+p=s;
+data=p;
+var=data();
+plot(var);
+annotation('textbox',...
+    [0.10 0.10 0.3 0.25],...
+    'String',{'worldtechchampion,',['particlesize =' num2str(var)]},...
+    'FontSize',14,...
+    'FontName','Arial',...
+    'LineStyle','--',...
+    'EdgeColor',[1 1 0],...
+    'LineWidth',2,...
+    'BackgroundColor',[0.9  0.9 0.9],...
+    'Color',[0.84 0.16 0]);
+boundaries = bwboundaries(binaryImage);
+numberOfBoundaries = size(boundaries, 1);
+for k = 1 : numberOfBoundaries
+	thisBoundary = boundaries{k};
+	plot(thisBoundary(:,2), thisBoundary(:,1), 'r', 'LineWidth', 3);
+end
+hold off;
+% Define object boundaries
+numberOfBoundaries = size(boundaries, 1)
+% message = sprintf('Found %d boundaries', numberOfBoundaries);
+% uiwait(helpdlg(message));
+% Find minimum distance between each pair of boundaries
+for b1 = 1 : numberOfBoundaries
+	for b2 = 1 : numberOfBoundaries
+		if b1 == b2
+			% Can't find distance between the region and itself
+			continue;
+		end
+		boundary1 = boundaries{b1};
+		boundary2 = boundaries{b2};
+		boundary1x = boundary1(:, 2);
+		boundary1y = boundary1(:, 1);
+		x1=1;
+		y1=1;
+		x2=1;
+		y2=1;
+		overallMinDistance = inf; % Initialize.
+		% For every point in boundary 2, find the distance to every point in boundary 1.
+		for k = 1 : size(boundary2, 1)
+			% Pick the next point on boundary 2.
+			boundary2x = boundary2(k, 2);
+			boundary2y = boundary2(k, 1);
+			% For this point, compute distances from it to all points in boundary 1.
+			allDistances = sqrt((boundary1x - boundary2x).^2 + (boundary1y - boundary2y).^2);
+			% Find closest point, min distance.
+			[minDistance(k), indexOfMin] = min(allDistances);
+			if minDistance(k) < overallMinDistance
+				x1 = boundary1x(indexOfMin);
+				y1 = boundary1y(indexOfMin);
+				x2 = boundary2x;
+				y2 = boundary2y;
+				overallMinDistance = minDistance(k);
+			end
+		end
+		% Find the overall min distance
+		minDistance = min(minDistance);
+		% Report to command window.
+		fprintf('The minimum distance from region %d to region %d is %.3f pixels\n', b1, b2, minDistance);
+		% Draw a line between point 1 and 2
+		line([x1, x2], [y1, y2], 'Color', 'y', 'LineWidth', 3);
+	end
+end
+disp(k)
